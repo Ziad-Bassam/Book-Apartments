@@ -121,4 +121,3 @@ API routes (`routes/api.php`):
 
 ## License
 This project is open-sourced under the MIT license.
-end
