@@ -1,66 +1,123 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+## Booking Application (Laravel 10 + Vite)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A simple apartment booking application built with Laravel 10, Blade, and Vite. Users can list apartments, request bookings, and manage payments. Admins can approve or reject apartment listings.
 
-## About Laravel
+### Stack
+- **Backend**: Laravel 10, PHP ^8.1, Eloquent ORM
+- **Auth**: `laravel/ui` (classic auth scaffolding)
+- **API/Auth tokens**: `laravel/sanctum` (only default `/api/user` route enabled)
+- **Frontend tooling**: Vite 5, Sass, Bootstrap 5, Axios
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Requirements
+- PHP 8.1+
+- Composer
+- Node.js 18+ (required by Vite 5)
+- A MySQL-compatible database
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Getting Started
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Install PHP dependencies:
+```bash
+composer install
+```
 
-## Learning Laravel
+2. Install JS dependencies:
+```bash
+npm install
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+3. Environment setup:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+Configure database connection in `.env` (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD).
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+4. Run migrations:
+```bash
+php artisan migrate
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+5. Run the app (two terminals):
+```bash
+# Terminal 1: Laravel dev server
+php artisan serve
 
-## Laravel Sponsors
+# Terminal 2: Frontend dev server (Vite)
+npm run dev
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Then open the application at the URL shown by `php artisan serve` (usually `http://127.0.0.1:8000`).
 
-### Premium Partners
+### Build for production
+```bash
+npm run build
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Application Overview
 
-## Contributing
+### Authentication and Roles
+- Auth scaffolding via `laravel/ui` (login, register, email verification, password reset views are present).
+- Admin access is enforced by middleware `App\Http\Middleware\IsAdmin` which checks `auth()->user()->role === 'admin'`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Core Domains
+- `Apartment`: listed units with availability windows and nightly price.
+- `Booking`: user requests for date ranges; statuses: `pending`, `confirmed`, `canceled`, `expired`; payment statuses: `unpaid`, `partial`, `paid`.
+- `Payments`: simplistic record of payments linked to a booking.
 
-## Code of Conduct
+### Database Schema (migrations)
+- `apartments`
+  - `user_id`, `title`, `description`, `address`, `price_per_night`, `available_from`, `available_to`, `admin_approve` (bool), `status` (`available|booked|unavailable`).
+- `bookings`
+  - `user_id`, `apartment_id`, `start_date`, `end_date`, `total_price`, `payment_deadline`, `paid_amount`, `status` (`pending|confirmed|canceled|expired`), `payment_status` (`unpaid|partial|paid`).
+- `payments`
+  - `booking_id`, `amount_paid`, `payment_date`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Routes
 
-## Security Vulnerabilities
+Web routes (`routes/web.php`):
+- `GET /` → redirects to `apartments.index`
+- Apartments (`/apartments`):
+  - `GET /` index approved + available
+  - `GET /all` list all approved (paginated)
+  - `GET /create` create form
+  - `POST /` store
+  - `GET /{id}` show
+  - `GET /{id}/edit` edit form
+  - `PUT /{id}` update
+  - `DELETE /{id}` delete
+- Bookings (`/bookings`, auth required):
+  - `GET /` list my bookings
+  - `GET /{apartment_id}/create` create form
+  - `POST /{apartment_id}` store
+  - `GET /{booking}` show
+  - `DELETE /{booking}` cancel (own booking)
+  - `POST /{id}/confirm` owner confirms and auto-cancels conflicts
+  - `POST /{id}/cancel` owner cancels
+  - `POST /{id}/payment-status` owner updates payment status
+- Admin Apartments (auth + admin):
+  - `GET /admin/pending-apartments` pending list
+  - `PATCH /admin/apartments/{apartment}/approve` approve
+  - `DELETE /admin/apartments/{apartment}` reject/delete
+- Payments (`/payments`, auth required):
+  - `GET /unpaid` list my unpaid bookings
+  - `POST /{booking_id}` mark as paid
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+API routes (`routes/api.php`):
+- `GET /api/user` (auth:sanctum)
+
+### Frontend
+- Entrypoints: `resources/js/app.js`, `resources/sass/app.scss` (configured in `vite.config.js`).
+- Uses Bootstrap 5, Axios, and Blade views under `resources/views`.
+
+## Development Notes
+- Ensure a user has `role = 'admin'` in the `users` table to access admin routes.
+- The `PaymentsController` provides a minimal flow (mark booking as paid). The `payments` table exists for extension but is not currently written in that controller.
+- Overlap prevention: when a booking is confirmed, other overlapping pending bookings for the same apartment are auto-canceled.
+
+## Scripts
+- `npm run dev` – start Vite dev server
+- `npm run build` – build assets
 
 ## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced under the MIT license.
